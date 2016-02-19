@@ -77,7 +77,7 @@ void kilo_init() {
 
     ports_off();
     ports_on();
-    tx_timer_setup();
+    //tx_timer_setup();@Letsibogo Ramadi mod
     rx_timer_setup();
     motors_setup();
     acomp_setup();
@@ -94,14 +94,14 @@ void kilo_init() {
     rx_byteindex = 0;
     rx_bytevalue = 0;
 #ifndef BOOTLOADER
-    tx_mask = eeprom_read_byte(EEPROM_TXMASK);
+    /*tx_mask = eeprom_read_byte(EEPROM_TXMASK);
     if (tx_mask & ~TX_MASK_MAX)
         tx_mask = TX_MASK_MIN;
     tx_clock = 0;
     tx_increment = 255;
-    kilo_ticks = 0;
+    kilo_ticks = 0;*/
     kilo_state = IDLE;
-    kilo_tx_period = 3906;
+    //kilo_tx_period = 3906;//@Letsibogo Ramadi mod
     kilo_uid = eeprom_read_byte(EEPROM_UID) | eeprom_read_byte(EEPROM_UID+1)<<8;
     kilo_turn_left = eeprom_read_byte(EEPROM_LEFT_ROTATE);
     kilo_turn_right = eeprom_read_byte(EEPROM_RIGHT_ROTATE);
@@ -177,6 +177,7 @@ void kilo_start(void (*setup)(void), void (*loop)(void)) {
                 set_color(RGB(0,0,0));
                 break;
             case IDLE:
+                tx_timer_off();
                 set_color(RGB(0,3,0));
                 _delay_ms(1);
                 set_color(RGB(0,0,0));
@@ -205,6 +206,7 @@ void kilo_start(void (*setup)(void), void (*loop)(void)) {
             case SETUP:
                 if (!has_setup) {
                     setup();
+                    tx_timer_off();
                     has_setup = 1;
                 }
                 kilo_state = RUNNING;
@@ -255,6 +257,7 @@ static inline void process_message() {
             break;
         case RESET:
             reset();
+            tx_timer_off();
             break;
         case SLEEP:
             kilo_state = SLEEPING;
@@ -500,20 +503,20 @@ uint8_t estimate_distance(const distance_measurement_t *dist) {
  * Used to send messages every kilo_tx_period ticks.
  */
 ISR(TIMER0_COMPA_vect) {
-    tx_clock += tx_increment;
+   /* tx_clock += tx_increment;
     tx_increment = 0xFF;
     OCR0A = tx_increment;
     kilo_ticks++;
-
+    */
     if(!rx_busy && tx_clock>kilo_tx_period && kilo_state == RUNNING) {
-        message_t *msg = kilo_message_tx();
+        message_t *msg = message_tx_dummy;
         if (msg) {
             if (message_send(msg)) {
                 kilo_message_tx_success();
                 tx_clock = 0;
             } else {
-                tx_increment = rand()&0xFF;
-                OCR0A = tx_increment;
+                /*tx_increment = rand()&0xFF;
+                OCR0A = tx_increment;*/
             }
         }
     }
